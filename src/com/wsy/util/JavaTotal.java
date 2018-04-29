@@ -30,17 +30,17 @@ public class JavaTotal {
             List<File> list = total(javaPath);  
             for (File file : list) {  
                 String javaName = file.getAbsolutePath().replace("\\", "/");  
-                if(javaName.endsWith(".java")){  
+                if(javaName.endsWith(".java") || javaName.endsWith(".jsp")){  
                     pw.println(javaName);
-                }  
+                }
             }  
-            pw.println("总java文件数量 ：" + list.size());  
+            pw.println("总java与jsp文件数量 ：" + list.size());  
             
-            System.err.println("java files total："+list.size());  
+            System.err.println("Valid files total:"+list.size());  
             countJavaLine(list);  
             pw.println("总行数 ：" + countCode);  
             pw.close();  
-            System.err.println("line total：" + countCode);  
+            System.err.println("line total:" + countCode);  
               
         } catch (Exception e) {  
             // TODO: handle exception  
@@ -62,7 +62,9 @@ public class JavaTotal {
             for (File file : files) {  
                 if(file.isFile() && file.getName().endsWith(".java")){  
                     fileList.add(file);  
-                }else {  
+                }else if(file.isFile() && file.getName().endsWith(".jsp")){
+                	fileList.add(file);
+                }else{  
                     fileList.addAll(fileList.size(), total(file.getPath()));  
                 }  
             }  
@@ -85,19 +87,58 @@ public class JavaTotal {
                     BufferedReader br = new BufferedReader(fr);  
                     String line = "";  
                     while((line = br.readLine()) != null){  
-                    	String realline = line.replace("","");
+                    	String realline = line.replace(" ","");
                     	realline = realline.replace("\t","");
                     	if(realline.length() <= 0){
                     		continue;
                     	}
                     	
-                    	
+                    	//排除所有注释
                     	if(realline.startsWith("//")||realline.startsWith("/*") ||realline.startsWith("*")){
                     		continue;
                     	}
                         countCode ++;  
                     }  
-                }  
+                } else if(file.getName().endsWith(".jsp")){
+                	FileReader fr = new FileReader(file);
+                	BufferedReader br = new BufferedReader(fr);
+                	String line = "";
+                	boolean jflag = false;
+                	while((line = br.readLine()) != null){
+                		if(line.indexOf("<%") > -1){
+                			if(line.indexOf("%>") > -1){
+                				countCode++;
+                			}else{
+                				String realline = line.replace(" ","");
+                            	realline = realline.replace("\t","");
+                            	if(!realline.endsWith("<%")){
+                            		countCode++;
+                            	}
+                            	jflag = true;
+                			}
+                		}else if(line.indexOf("%>") > -1){
+                			String realline = line.replace(" ","");
+                        	realline = realline.replace("\t","");
+                        	if(!realline.startsWith("%>")){
+                        		countCode++;
+                        	}
+                        	jflag = false;
+                		}
+                		//判断是否已经进入jsp代码块
+                		else if(jflag == true){
+                			String realline = line.replace(" ","");
+                        	realline = realline.replace("\t","");
+                        	if(realline.length() <= 0){
+                        		continue;
+                        	}
+                        	//排除所有注释
+                        	if(realline.startsWith("//")||realline.startsWith("/*") ||realline.startsWith("*")){
+                        		continue;
+                        	}
+                            countCode ++;  
+                		}
+                	}
+                }
             }  
         } catch (Exception e) {  
             System.err.println("countJavaLine error!");  
